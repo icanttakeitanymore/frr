@@ -1,0 +1,86 @@
+frr version 8.1
+frr defaults traditional
+hostname <%= @hostname %>
+log syslog
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+
+<% @bgp_groups.each do |group_name, group| -%>
+router bgp <%= group['local_as'] %>
+ bgp router-id <%= group['router_id'] %>
+ bgp log-neighbor-changes
+ no bgp default ipv4-unicast
+
+ <% if group['multipath'] -%>
+ bgp bestpath as-path multipath-relax
+ maximum-paths 32
+ <% end -%>
+
+ <% group['neighbors'].each do |n| -%>
+ neighbor <%= n['ip'] %> remote-as <%= n['remote_as'] %>
+ <% if (n['bfd'] || group['bfd']) -%>
+ neighbor <%= n['ip'] %> bfd
+ <% end -%>
+ neighbor <%= n['ip'] %> timers <%= n['timers'] || group['timers'] || '300 3' %>
+ !
+ <% end -%>
+
+ address-family ipv4 unicast
+
+ <% group['advertised_prefixes'].each do |p| -%>
+  network <%= p %>
+ <% end -%>
+
+ <% group['neighbors'].each do |n| -%>
+  neighbor <%= n['ip'] %> activate
+  neighbor <%= n['ip'] %> route-map ONLY_IN_<%= group_name %> in
+  neighbor <%= n['ip'] %> route-map ONLY_OUT_<%= group_name %> out
+ <% end -%>
+
+ exit-address-family
+exit
+!
+
+# ==== OUTGOING FILTER ====
+<% group['advertised_prefixes'].each_with_index do |p, i| -%>
+ip prefix-list ONLY_ME_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
+<% end -%>
+ip prefix-list ONLY_ME_<%= group_name %> seq 100 deny 0.0.0.0/0 le 32
+!
+
+route-map ONLY_OUT_<%= group_name %> permit 10
+ match ip address prefix-list ONLY_ME_<%= group_name %>
+exit
+!
+route-map ONLY_OUT_<%= group_name %> deny 100
+exit
+!
+
+# ==== INCOMING FILTER ====
+<% if group['receive_prefixes'] -%>
+
+<% group['receive_prefixes'].each_with_index do |p, i| -%>
+ip prefix-list ONLY_IN_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
+<% end -%>
+ip prefix-list ONLY_IN_<%= group_name %> seq 100 deny 0.0.0.0/0 le 32
+!
+
+route-map ONLY_IN_<%= group_name %> permit 10
+ match ip address prefix-list ONLY_IN_<%= group_name %>
+exit
+!
+route-map ONLY_IN_<%= group_name %> deny 100
+exit
+!
+
+<% else -%>
+
+# allow all if receive_prefixes not defined
+route-map ONLY_IN_<%= group_name %> permit 10
+exit
+!
+
+<% end -%>
+
+<% end -%>

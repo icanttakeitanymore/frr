@@ -4,7 +4,7 @@ maintainer_email 'you@example.com'
 license 'All Rights Reserved'
 description 'Installs/Configures frr'
 long_description 'Installs/Configures frr'
-version '0.2.0'
+version '0.2.1'
 chef_version '>= 14.0'
 
 depends          'common'

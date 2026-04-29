@@ -5,7 +5,10 @@ Example structure for node['frr']['bgp_groups']:
         'router_id' => '1.2.3.4',
         'local_as' => 65000,
         'advertised_prefixes' => [
-            '1.2.3.6/32'
+            '1.2.0.0/16 le 24'
+        ],
+        'receive_prefixes' => [
+            '7.4.5.0/24 le 32'
         ],
         'neighbors' => [
             { 'ip' => '1.2.3.5', 'remote_as' => 65001 }

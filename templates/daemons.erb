@@ -39,7 +39,7 @@ pathd=no
 #
 vtysh_enable=yes
 zebra_options="  -A 127.0.0.1 -s 90000000"
-bgpd_options="   -A 127.0.0.1 <%= @router_ids.map { |id| "-l #{id}" }.join(' ') %>"
+bgpd_options="   -A 127.0.0.1 <%= @router_ids.map { |id| "-l #{id}" }.join(' ') %> -p <%= @bgpd_port || 179 %>"
 ospfd_options="  -A 127.0.0.1"
 ospf6d_options=" -A ::1"
 ripd_options="   -A 127.0.0.1"

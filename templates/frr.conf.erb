@@ -7,7 +7,7 @@ service integrated-vtysh-config
 !
 
 <% @bgp_groups.each do |group_name, group| -%>
-router bgp <%= group['local_as'] %>
+router bgp <%= group['local_as'] %><% if group['vrf'] %> vrf <%= group['vrf'] %><% end %>
  bgp router-id <%= group['router_id'] %>
  bgp log-neighbor-changes
  no bgp default ipv4-unicast
@@ -22,20 +22,25 @@ router bgp <%= group['local_as'] %>
  <% if (n['bfd'] || group['bfd']) -%>
  neighbor <%= n['ip'] %> bfd
  <% end -%>
+ <% if n['port'] %>
+ neighbor <%= n['ip'] %> port <%= n['port'] %>
+ <% end %>
  neighbor <%= n['ip'] %> timers <%= n['timers'] || group['timers'] || '300 3' %>
  !
  <% end -%>
 
  address-family ipv4 unicast
-
- <% group['advertised_prefixes'].each do |p| -%>
-  network <%= p %>
- <% end -%>
+  redistribute kernel route-map ONLY_OUT_<%= group_name %>
+  redistribute connected route-map ONLY_OUT_<%= group_name %>
 
  <% group['neighbors'].each do |n| -%>
+  neighbor <%= n['ip'] %> next-hop-self 
   neighbor <%= n['ip'] %> activate
   neighbor <%= n['ip'] %> route-map ONLY_IN_<%= group_name %> in
   neighbor <%= n['ip'] %> route-map ONLY_OUT_<%= group_name %> out
+  <% if n['is_rr_client'] -%>
+  neighbor <%= n['ip'] %> route-reflector-client
+<% end -%>
  <% end -%>
 
  exit-address-family

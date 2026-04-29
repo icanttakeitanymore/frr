@@ -31,7 +31,7 @@ node['frr']['dummies']['ifaces'].each do |ifname, conf|
     http_check_status_codes conf[:status_codes]
     http_check_status_codes conf[:status_codes]
     http_check_fail conf[:fail] || 3
-    http_check_raise conf[:raise] || 1 
+    http_check_raise conf[:raise] || 1
     http_check_interval conf[:interval] || 1000
     http_check_timeout conf[:interval] || 1000
     action node['frr']['dummies']['ifaces_actions'][ifname]

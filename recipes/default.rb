@@ -57,7 +57,8 @@ template '/etc/frr/daemons' do
   group 'root'
   mode '0755'
   variables(
-    router_ids: node['frr']['bgp_groups'].values.map { |g| g['router_id'] }
+    router_ids: node['frr']['bgp_groups'].values.map { |g| g['router_id'] },
+    bgpd_port: node['frr']['bgpd_port'] || 179
   )
   action :create
   notifies :restart, 'service[frr]'

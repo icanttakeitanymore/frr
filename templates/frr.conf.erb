@@ -34,7 +34,9 @@ router bgp <%= group['local_as'] %><% if group['vrf'] %> vrf <%= group['vrf'] %>
   redistribute connected route-map ONLY_OUT_<%= group_name %>
 
  <% group['neighbors'].each do |n| -%>
+ <% if n['next_hop_self']%>
   neighbor <%= n['ip'] %> next-hop-self 
+ <% end %>
   neighbor <%= n['ip'] %> activate
   neighbor <%= n['ip'] %> route-map ONLY_IN_<%= group_name %> in
   neighbor <%= n['ip'] %> route-map ONLY_OUT_<%= group_name %> out

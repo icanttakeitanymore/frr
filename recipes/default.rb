@@ -67,3 +67,9 @@ end
 service 'frr' do
   action [:enable, :start]
 end
+
+# 5 tuples ECMP
+sysctl 'net.ipv4.fib_multipath_hash_policy' do
+  value '1'
+  action :apply
+end

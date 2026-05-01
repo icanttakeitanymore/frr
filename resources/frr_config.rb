@@ -12,7 +12,7 @@ action_class do
   def validate_bgp_groups!(groups)
     unless groups.is_a?(Hash) && !groups.empty?
       raise Chef::Exceptions::ValidationFailed,
-        "bgp_groups must be a non-empty Hash"
+            "bgp_groups must be a non-empty Hash"
     end
 
     groups.each do |group_name, g|
@@ -34,7 +34,7 @@ action_class do
       # === NEIGHBORS ===
       unless g['neighbors'].is_a?(Array) && !g['neighbors'].empty?
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}['neighbors'] must be a non-empty Array"
+              "#{ctx}['neighbors'] must be a non-empty Array"
       end
 
       g['neighbors'].each_with_index do |n, i|
@@ -46,11 +46,12 @@ action_class do
 
         %w(ip remote_as).each do |k|
           raise Chef::Exceptions::ValidationFailed,
-            "#{nctx}['#{k}'] is required" if n[k].nil?
+                "#{nctx}['#{k}'] is required" if n[k].nil?
         end
 
         raise Chef::Exceptions::ValidationFailed, "#{nctx}['ip'] must be String" unless n['ip'].is_a?(String)
-        raise Chef::Exceptions::ValidationFailed, "#{nctx}['remote_as'] must be Integer" unless n['remote_as'].is_a?(Integer)
+        raise Chef::Exceptions::ValidationFailed,
+              "#{nctx}['remote_as'] must be Integer" unless n['remote_as'].is_a?(Integer)
 
         if n['port'] && !n['port'].is_a?(Integer)
           raise Chef::Exceptions::ValidationFailed, "#{nctx}['port'] must be Integer"
@@ -63,7 +64,7 @@ action_class do
         %w(bfd next_hop_self is_rr_client).each do |flag|
           if n.key?(flag) && !!n[flag] != n[flag]
             raise Chef::Exceptions::ValidationFailed,
-              "#{nctx}['#{flag}'] must be boolean"
+                  "#{nctx}['#{flag}'] must be boolean"
           end
         end
       end
@@ -71,17 +72,17 @@ action_class do
       # === OPTIONAL GROUP FLAGS ===
       if g['multipath'] && !!g['multipath'] != g['multipath']
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}['multipath'] must be boolean"
+              "#{ctx}['multipath'] must be boolean"
       end
 
       if g['bfd'] && !!g['bfd'] != g['bfd']
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}['bfd'] must be boolean"
+              "#{ctx}['bfd'] must be boolean"
       end
 
       if g['timers'] && !g['timers'].is_a?(String)
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}['timers'] must be String"
+              "#{ctx}['timers'] must be String"
       end
     end
   end
@@ -98,13 +99,13 @@ action_class do
     arr.each_with_index do |p, i|
       unless p.is_a?(String) && !p.strip.empty?
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}[#{i}] must be a non-empty String"
+              "#{ctx}[#{i}] must be a non-empty String"
       end
 
       # пока просто базовая проверка, потом можно усилить
       unless p.match?(%r{\A\S+\z})
         raise Chef::Exceptions::ValidationFailed,
-          "#{ctx}[#{i}] invalid format '#{p}'"
+              "#{ctx}[#{i}] invalid format '#{p}'"
       end
     end
   end

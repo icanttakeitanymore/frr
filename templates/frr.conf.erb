@@ -3,11 +3,51 @@ frr defaults traditional
 hostname <%= @hostname %>
 log syslog
 no ipv6 forwarding
+
 service integrated-vtysh-config
 !
 
 <% @bgp_groups.each do |group_name, group| -%>
+
+# ==== ADVERTISE PREFIXES (OUT) ====
+<% group['advertised_prefixes'].each_with_index do |p, i| -%>
+ip prefix-list ADVERTISE_PREFIXES_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
+<% end -%>
+ip prefix-list ADVERTISE_PREFIXES_<%= group_name %> seq 500 deny 0.0.0.0/0 le 32
+!
+
+route-map RM_OUT_<%= group_name %> permit 10
+ match ip address prefix-list ADVERTISE_PREFIXES_<%= group_name %>
+exit
+!
+route-map RM_OUT_<%= group_name %> deny 100
+exit
+!
+
+# ==== RECEIVE PREFIXES (IN) ====
+<% if group['receive_prefixes'] -%>
+<% group['receive_prefixes'].each_with_index do |p, i| -%>
+ip prefix-list RECEIVE_PREFIXES_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
+<% end -%>
+ip prefix-list RECEIVE_PREFIXES_<%= group_name %> seq 500 deny 0.0.0.0/0 le 32
+!
+
+route-map RM_IN_<%= group_name %> permit 10
+ match ip address prefix-list RECEIVE_PREFIXES_<%= group_name %>
+exit
+!
+route-map RM_IN_<%= group_name %> deny 100
+exit
+!
+<% else -%>
+# Default allow if no specific receive prefixes defined
+route-map RM_IN_<%= group_name %> permit 10
+exit
+!
+<% end -%>
+
 router bgp <%= group['local_as'] %><% if group['vrf'] %> vrf <%= group['vrf'] %><% end %>
+
  bgp router-id <%= group['router_id'] %>
  bgp log-neighbor-changes
  no bgp default ipv4-unicast
@@ -22,72 +62,31 @@ router bgp <%= group['local_as'] %><% if group['vrf'] %> vrf <%= group['vrf'] %>
  <% if (n['bfd'] || group['bfd']) -%>
  neighbor <%= n['ip'] %> bfd
  <% end -%>
- <% if n['port'] %>
+ <% if n['port'] -%>
  neighbor <%= n['ip'] %> port <%= n['port'] %>
- <% end %>
+ <% end -%>
  neighbor <%= n['ip'] %> timers <%= n['timers'] || group['timers'] || '300 3' %>
  !
  <% end -%>
 
  address-family ipv4 unicast
-  redistribute kernel route-map ONLY_OUT_<%= group_name %>
-  redistribute connected route-map ONLY_OUT_<%= group_name %>
+  # Redistribute only what matches our advertise list
+  redistribute kernel route-map RM_OUT_<%= group_name %>
+  redistribute connected route-map RM_OUT_<%= group_name %>
 
  <% group['neighbors'].each do |n| -%>
- <% if n['next_hop_self']%>
-  neighbor <%= n['ip'] %> next-hop-self 
- <% end %>
   neighbor <%= n['ip'] %> activate
-  neighbor <%= n['ip'] %> route-map ONLY_IN_<%= group_name %> in
-  neighbor <%= n['ip'] %> route-map ONLY_OUT_<%= group_name %> out
+  neighbor <%= n['ip'] %> route-map RM_IN_<%= group_name %> in
+  neighbor <%= n['ip'] %> route-map RM_OUT_<%= group_name %> out
+  <% if n['next_hop_self'] -%>
+  neighbor <%= n['ip'] %> next-hop-self 
+  <% end -%>
   <% if n['is_rr_client'] -%>
   neighbor <%= n['ip'] %> route-reflector-client
-<% end -%>
+  <% end -%>
  <% end -%>
-
  exit-address-family
 exit
 !
-
-# ==== OUTGOING FILTER ====
-<% group['advertised_prefixes'].each_with_index do |p, i| -%>
-ip prefix-list ONLY_ME_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
-<% end -%>
-ip prefix-list ONLY_ME_<%= group_name %> seq 100 deny 0.0.0.0/0 le 32
-!
-
-route-map ONLY_OUT_<%= group_name %> permit 10
- match ip address prefix-list ONLY_ME_<%= group_name %>
-exit
-!
-route-map ONLY_OUT_<%= group_name %> deny 100
-exit
-!
-
-# ==== INCOMING FILTER ====
-<% if group['receive_prefixes'] -%>
-
-<% group['receive_prefixes'].each_with_index do |p, i| -%>
-ip prefix-list ONLY_IN_<%= group_name %> seq <%= 5 + i*5 %> permit <%= p %>
-<% end -%>
-ip prefix-list ONLY_IN_<%= group_name %> seq 100 deny 0.0.0.0/0 le 32
-!
-
-route-map ONLY_IN_<%= group_name %> permit 10
- match ip address prefix-list ONLY_IN_<%= group_name %>
-exit
-!
-route-map ONLY_IN_<%= group_name %> deny 100
-exit
-!
-
-<% else -%>
-
-# allow all if receive_prefixes not defined
-route-map ONLY_IN_<%= group_name %> permit 10
-exit
-!
-
-<% end -%>
 
 <% end -%>

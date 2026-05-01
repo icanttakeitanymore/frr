@@ -41,13 +41,8 @@ package 'frr'
 
 # ==== CONFIG ====
 
-template '/etc/frr/frr.conf' do
-  source 'frr.conf.erb'
-  variables(
-    hostname: node['fqdn'],
-    bgp_groups: node['frr']['bgp_groups']
-  )
-  verify 'vtysh -C -f /etc/frr/frr.conf'
+frr_config node[:fqdn] do
+  bgp_groups node['frr']['bgp_groups']
   notifies :restart, 'service[frr]'
 end
 
@@ -55,7 +50,7 @@ template '/etc/frr/daemons' do
   source 'daemons.erb'
   owner 'root'
   group 'root'
-  mode '0755'
+  mode '0644'
   variables(
     router_ids: node['frr']['bgp_groups'].values.map { |g| g['router_id'] },
     bgpd_port: node['frr']['bgpd_port'] || 179
